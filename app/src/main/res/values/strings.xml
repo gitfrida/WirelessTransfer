@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">WifiTransfer</string>
+    <string name="please_wait">Looking for nearby devices. Please wait...</string>
+    <string name="choose_role">Choose role please</string>
+    <string name="preparing_phonebook">Preparing phonebook, please wait</string>
+    <string name="finished">Finished</string>
+    <string name="found_nearby">Found nearby device</string>
+    <string name="connected_wait">Connected, wait please...</string>
+    <string name="connection_failed">Connection failed</string>
+    <string name="discover_succeeded">Discover Succeeded</string>
+    <string name="discover_failed">Discover Failed, trying again...</string>
+    <string name="ready">Ready</string>
+    <string name="ready_send">Ready to send</string>
+    <string name="wait_content">Waiting for content</string>
+    <string name="receive_image">Receiving image</string>
+    <string name="phonebook_saved">Phonebook saved</string>
+    <string name="sending_phonebook">Sending phonebook</string>
+    <string name="sending_image">Sending image</string>
+
+</resources>
