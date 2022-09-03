@@ -2,27 +2,23 @@ package com.mce.wirelesstransfer.ui;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import com.mce.wirelesstransfer.R;
 import com.mce.wirelesstransfer.contacts.PhoneBookManager;
 import com.mce.wirelesstransfer.network.ConnectionManager;
-import com.mce.wirelesstransfer.network.ContentReceiver;
 import com.mce.wirelesstransfer.network.ContentSender;
-import com.mce.wirelesstransfer.network.WiFiDirectBroadcastReceiver;
-
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
 
@@ -32,28 +28,24 @@ public class MainActivity extends Activity {
     public ConnectionManager connectionManager;
     private TextView status;
     private View rolesLayout;
-    String phoneBook = "";
-
-
+    private String phoneBook = "";
+    private RecyclerView listView;
+    private DeviceListAdapter deviceListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Set up an Intent to send back to apps that request a file
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         connectionManager = new ConnectionManager(this);
         connectionManager.setupWifiManager();
-
         setupUI();
-
-        // If any permission is denied app can't continue
         checkPermissions();
-
-
-
     }
 
+    /**
+     * Check for permissions and if any is not granted request it.
+     * If all is granted prepare phonebook info
+     */
     private void checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED ||
@@ -73,8 +65,6 @@ public class MainActivity extends Activity {
         }
         else
             preparePhoneBook();
-
-
     }
 
 
@@ -84,41 +74,40 @@ public class MainActivity extends Activity {
         connectionManager.register();
     }
 
-    /* unregister the broadcast receiver */
     @Override
     protected void onPause() {
         super.onPause();
         connectionManager.unregister();
     }
 
-
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
-    }
-
+    /**
+     * A callback when file has been picked. Start sending content if all is okay
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == PICKFILE_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) { // Activity.RESULT_OK
+            if (resultCode == RESULT_OK) {
                 Uri imageUri = data.getData();
-                ContentSender.getInstance().sendContent(imageUri,phoneBook,connectionManager.deviceAddress);
+                ContentSender.getInstance().sendContent(imageUri,phoneBook,connectionManager.getDeviceAddress());
                 Log.d(TAG, "File is picked");
             }
         }
-
     }
 
 
-
+    /**
+     * Receives permissions results. If any permission is denied app can't continue
+     * @param requestCode
+     * @param permissions
+     * @param grantResults
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
-
         if (grantResults.length > 0) {
             if (grantResults[0] == PackageManager.PERMISSION_DENIED ||
                     grantResults[1] == PackageManager.PERMISSION_DENIED ||
@@ -127,17 +116,16 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "Permissions are missing Bye Bye!", Toast.LENGTH_SHORT);
                 finish();
 
-            } else {
+            } else
                 preparePhoneBook();
-
-            }
-
         }
-
         return;
     }
 
 
+    /**
+     * Prepares UI components
+     */
     private void setupUI() {
 
         rolesLayout = findViewById(R.id.rolesLayout);
@@ -146,14 +134,12 @@ public class MainActivity extends Activity {
             connectionManager.setSender(true);
             connectionManager.discoverPeers();
             rolesLayout.setVisibility(View.INVISIBLE);
-
         });
 
         findViewById(R.id.receiverBtn).setOnClickListener(view -> {
             connectionManager.setSender(false);
             connectionManager.discoverPeers();
             rolesLayout.setVisibility(View.INVISIBLE);
-
         });
 
         findViewById(R.id.transferBtn).setOnClickListener(view -> {
@@ -162,11 +148,18 @@ public class MainActivity extends Activity {
             pickFile();
         });
 
-
+        // Setup nearby devices list
+        listView = findViewById(R.id.devicesList);
+        listView.setLayoutManager(new LinearLayoutManager(this));
+        deviceListAdapter = new DeviceListAdapter(this);
+        listView.setAdapter(deviceListAdapter);
     }
 
+    /**
+     * Calls PhoneBookManager to get the entire phonebook as a json string to be
+     * sent later on
+     */
     private void preparePhoneBook() {
-
        phoneBook = PhoneBookManager.getInstance().getJsonPhoneBook(this);
        findViewById(R.id.progressBar).setVisibility(View.GONE);
        status.setText(R.string.choose_role);
@@ -174,24 +167,48 @@ public class MainActivity extends Activity {
     }
 
 
+    /**
+     * Starts a new intent to select an image.
+     */
     public void pickFile() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
-
-
         startActivityForResult(intent, PICKFILE_REQUEST_CODE);
     }
 
+    /**
+     * Enable Transfer button by showing it
+     */
     public void setTransferBtnVisible()
     {
         findViewById(R.id.transferBtn).setVisibility(View.VISIBLE);
     }
 
-
-
-    public void sendMessage(int stringId) {
+    /**
+     * Show message on the screen to update user with the app's progress
+     * @param stringId
+     */
+    public void showMessage(int stringId) {
         runOnUiThread(() -> status.setText(stringId));
     }
 
+    /**
+     * User has selected a device to connect to, remove peers list and request connection
+     * @param wifiP2pDevice
+     */
+    public void deviceSelected(WifiP2pDevice wifiP2pDevice)
+    {
+        connectionManager.connectToDevice(wifiP2pDevice);
+        listView.setVisibility(View.INVISIBLE);
+    }
 
+    /**
+     * Show a list with peers info
+     * @param devices
+     */
+   public void showDevicesList(ArrayList<WifiP2pDevice> devices)
+   {
+       listView.setVisibility(View.VISIBLE);
+       deviceListAdapter.setDevices(devices);
+   }
 }

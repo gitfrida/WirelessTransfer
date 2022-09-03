@@ -5,18 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.NetworkInfo;
-import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
-import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
-
 import androidx.core.app.ActivityCompat;
-
 import com.mce.wirelesstransfer.ui.MainActivity;
-
-import java.net.InetAddress;
 
 public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
@@ -34,10 +26,10 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
         this.context = context;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see android.content.BroadcastReceiver#onReceive(android.content.Context,
-     * android.content.Intent)
+    /**
+     * Receives all wifi P2P updates, peers, connection etc.
+     * @param context
+     * @param intent
      */
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -58,23 +50,18 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
             // request available peers from the wifi p2p manager. This is an
             // asynchronous call and the calling activity is notified with a
             // callback on PeerListListener.onPeersAvailable()
-            if (!connectionManager.isConnected && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+            if (!connectionManager.isConnected() && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
                 manager.requestPeers(channel, connectionManager.peerListListener);
 
 
             Log.d(MainActivity.TAG, "Peers changed has been called");
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
             Log.d(MainActivity.TAG, "Connection changed has been called");
-
-            if(!connectionManager.isInfoReady)
+            if(!connectionManager.isInfoReady())
                 manager.requestConnectionInfo(channel, connectionManager.connectionInfoListener);
 
-
-
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-
             Log.d(MainActivity.TAG, "Device changed has been called");
-
         }
     }
 }

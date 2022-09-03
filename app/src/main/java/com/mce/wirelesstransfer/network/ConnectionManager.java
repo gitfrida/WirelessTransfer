@@ -1,7 +1,6 @@
 package com.mce.wirelesstransfer.network;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -13,87 +12,90 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
-import android.widget.TextView;
-
 import androidx.core.app.ActivityCompat;
-
 import com.mce.wirelesstransfer.R;
 import com.mce.wirelesstransfer.ui.MainActivity;
+import java.util.ArrayList;
 
 public class ConnectionManager {
     public static final int PORT = 8881;
     private MainActivity mainActivity;
-
-
-    WifiP2pManager manager;
-    WifiP2pManager.Channel channel;
-    BroadcastReceiver receiver;
-    IntentFilter intentFilter;
-    public String deviceAddress = null;
-    boolean isConnected = false;
-    boolean isInfoReady = false;
+    private WifiP2pManager manager;
+    private WifiP2pManager.Channel channel;
+    private BroadcastReceiver receiver;
+    private IntentFilter intentFilter;
+    private String deviceAddress = null;
+    private boolean isConnected = false;
+    private boolean isInfoReady = false;
     private boolean isSender;
-
     public WifiP2pManager.PeerListListener peerListListener;
     public WifiP2pManager.ConnectionInfoListener connectionInfoListener;
 
+    /**
+     * public constructor to create ConnecitonManager
+     * @param mainActivity
+     */
     public ConnectionManager(MainActivity mainActivity) {
         this.mainActivity = mainActivity;
+        setupPeersListener();
+        setupConnectionListener();
+    }
 
-
+    /**
+     * Sets up peers listener and holds the callback when peers are ready to show
+     */
+    private void setupPeersListener()
+    {
         peerListListener = new WifiP2pManager.PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
-                for (WifiP2pDevice device : wifiP2pDeviceList.getDeviceList()) {
-                        mainActivity.sendMessage(R.string.found_nearby);
-                            if (!isConnected) {
-                                Log.d(MainActivity.TAG, "onPeersAvailable: connect to" + device.deviceName + "  address " + device.deviceAddress);
-                                connectToDevice(device);
-                            }
-
-                        break;
-
-
-                }
-            }
-
-        };
-
-        connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
-            @Override
-            public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-               {
-                   Log.d(MainActivity.TAG,"onConnectionInfoAvailable formed: "+wifiP2pInfo.groupFormed + "  owner: "+wifiP2pInfo.isGroupOwner +
-                           "  address: "+wifiP2pInfo.groupOwnerAddress + " isSender: "+isSender + " isConnected: "+isConnected);
-                    if(!isSender)
-                    {
-                           if(!isInfoReady && wifiP2pInfo.groupFormed) {
-                               connectionReady(wifiP2pInfo.groupOwnerAddress.getHostAddress() );
-                               isInfoReady = true;
-                           }
-
-
-                    }
-                    else
-                    {
-                        if(wifiP2pInfo.groupOwnerAddress!=null && !isInfoReady && wifiP2pInfo.groupFormed) {
-                            connectionReady(wifiP2pInfo.groupOwnerAddress.getHostAddress());
-                            isInfoReady = true;
-                        }
-                    }
-
-
+                mainActivity.showMessage(R.string.found_nearby);
+                if (!isConnected) {
+                    Log.d(MainActivity.TAG, "onPeersAvailable: found peers " +wifiP2pDeviceList.getDeviceList().size());
+                    mainActivity.showDevicesList(new ArrayList<>(wifiP2pDeviceList.getDeviceList()));
                 }
             }
         };
     }
 
+    /**
+     * Sets up Connection Listener and holds the callback when connection info is ready
+     */
+    private void setupConnectionListener()
+    {
+        connectionInfoListener = new WifiP2pManager.ConnectionInfoListener() {
+            @Override
+            public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                {
+                    Log.d(MainActivity.TAG, "onConnectionInfoAvailable formed: " + wifiP2pInfo.groupFormed + "  owner: " + wifiP2pInfo.isGroupOwner +
+                            "  address: " + wifiP2pInfo.groupOwnerAddress + " isSender: " + isSender + " isConnected: " + isConnected);
+                    if (!isSender) {
+                        if (!isInfoReady && wifiP2pInfo.groupFormed) {
+                            connectionReady(wifiP2pInfo.groupOwnerAddress.getHostAddress());
+                            isInfoReady = true;
+                        }
+                    } else {
+                        if (wifiP2pInfo.groupOwnerAddress != null && !isInfoReady && wifiP2pInfo.groupFormed) {
+                            connectionReady(wifiP2pInfo.groupOwnerAddress.getHostAddress());
+                            isInfoReady = true;
+                        }
+                    }
+                }
+            }
+        };
 
-    private void connectToDevice(WifiP2pDevice device) {
+    }
+
+
+    /**
+     * Initiates connect attempt to a selected device
+     * @param device  selected device to connect to
+     */
+    public void connectToDevice(WifiP2pDevice device) {
+
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
         config.wps.setup = WpsInfo.PBC;
-
 
         if (!isConnected) {
             Log.d(MainActivity.TAG, "Try to connect to " + device.deviceName);
@@ -104,14 +106,13 @@ public class ConnectionManager {
                         public void onSuccess() {
                             isConnected = true;
                             Log.d(MainActivity.TAG, "Connect Succeeded" + device.deviceName);
-                            mainActivity.sendMessage(R.string.connected_wait);
-                            manager.requestConnectionInfo(channel,  connectionInfoListener);
-
+                            mainActivity.showMessage(R.string.connected_wait);
+                            manager.requestConnectionInfo(channel, connectionInfoListener);
                         }
 
                         @Override
                         public void onFailure(int i) {
-                            mainActivity.sendMessage(R.string.connection_failed);
+                            mainActivity.showMessage(R.string.connection_failed);
                         }
                     });
                 } catch (Exception e) {
@@ -123,6 +124,9 @@ public class ConnectionManager {
     }
 
 
+    /**
+     * Discovers nearby peers
+     */
     public void discoverPeers() {
         if (!isConnected) {
             if (ActivityCompat.checkSelfPermission(mainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -130,13 +134,13 @@ public class ConnectionManager {
                     @Override
                     public void onSuccess() {
                         Log.d(MainActivity.TAG, "Discover Succeeded");
-                        mainActivity.sendMessage(R.string.discover_succeeded);
+                        mainActivity.showMessage(R.string.discover_succeeded);
                     }
 
                     @Override
                     public void onFailure(int reasonCode) {
                         Log.d(MainActivity.TAG, "Discover Failed");
-                        mainActivity.sendMessage(R.string.discover_failed);
+                        mainActivity.showMessage(R.string.discover_failed);
                         discoverPeers();
                     }
                 });
@@ -146,6 +150,9 @@ public class ConnectionManager {
 
     }
 
+    /**
+     * Sets up wifi P2P communication managr and intents receiver
+     */
     public void setupWifiManager() {
 
         manager = (WifiP2pManager) mainActivity.getSystemService(Context.WIFI_P2P_SERVICE);
@@ -159,36 +166,56 @@ public class ConnectionManager {
 
     }
 
+    /**
+     * Registers the receiver
+     */
     public void register() {
         mainActivity.registerReceiver(receiver, intentFilter);
     }
 
+    /**
+     * Unregisters the receiver
+     */
     public void unregister() {
         mainActivity.unregisterReceiver(receiver);
     }
 
 
+    /**
+     * Handles connection is setup to start transfering content
+     * If sender, it notifies activity and sets up button visible to transfer image
+     * and opens socket
+     * If receiver initate a socket to listen to incoming data
+     * @param address the connected device's ip address
+     */
     public void connectionReady(String address) {
-        mainActivity.sendMessage(R.string.ready);
+        mainActivity.showMessage(R.string.ready);
         this.deviceAddress = address;
         if (isSender) {
-            mainActivity.sendMessage(R.string.ready_send);
+            mainActivity.showMessage(R.string.ready_send);
             mainActivity.setTransferBtnVisible();
             ContentSender.getInstance().init(mainActivity);
-            ContentSender.getInstance().openSocket(deviceAddress);
-        }
-         else
+            ContentSender.getInstance().openSocket();
+        } else
             new ContentReceiver(deviceAddress, mainActivity).openSocket();
-
-
-    }
-
-    public boolean isSender() {
-        return isSender;
     }
 
     public void setSender(boolean sender) {
         isSender = sender;
     }
+
+
+    public boolean isConnected() {
+        return isConnected;
+    }
+
+    public boolean isInfoReady() {
+        return isInfoReady;
+    }
+
+    public String getDeviceAddress() {
+        return deviceAddress;
+    }
+
 
 }

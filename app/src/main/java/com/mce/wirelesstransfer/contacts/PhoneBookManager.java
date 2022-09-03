@@ -5,15 +5,15 @@ import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.util.Log;
-
 import com.google.gson.Gson;
 import com.mce.wirelesstransfer.ui.MainActivity;
-
 import java.util.ArrayList;
+
 
 public class PhoneBookManager {
 
@@ -27,12 +27,15 @@ public class PhoneBookManager {
     }
 
 
-
+    /**
+     * Reads all the contact info from phonebook
+     * @param context current context
+     * @return Phonebook class with all the contacts info
+     */
     @SuppressLint("Range")
-    private PhoneBook getReadContacts(MainActivity activity) {
-
+    private PhoneBook getContacts(Context context) {
         PhoneBook phoneBook = new PhoneBook();
-        ContentResolver cr = activity.getContentResolver();
+        ContentResolver cr = context.getContentResolver();
         Cursor mainCursor = cr.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
         if (mainCursor != null) {
             while (mainCursor.moveToNext()) {
@@ -66,7 +69,6 @@ public class PhoneBookManager {
                     }
                     contactItem.setArrayListPhone(arrayListPhone);
 
-
                     //ADD E-MAIL DATA...
                     ArrayList < ContactEmail > arrayListEmail = new ArrayList <> ();
                     Cursor emailCursor = cr.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, null, ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?", new String[] {
@@ -96,13 +98,23 @@ public class PhoneBookManager {
     }
 
 
-    public String getJsonPhoneBook(MainActivity activity)
+    /**
+     * Returns all the Phonebook info as json string
+     * @param context
+     * @return
+     */
+    public String getJsonPhoneBook(Context context)
     {
-        return new Gson().toJson(getReadContacts(activity));
+        return new Gson().toJson(getContacts(context));
     }
 
 
-    public void writePhoneBook(MainActivity activity, PhoneBook phoneBook)
+    /**
+     * Writes every contact info in the class param phoneBook
+     * @param context
+     * @param phoneBook
+     */
+    public void writePhoneBook(Context context, PhoneBook phoneBook)
     {
         ArrayList<Contact> contacts = phoneBook.getContacts();
         for(Contact contact : contacts)
@@ -110,8 +122,7 @@ public class PhoneBookManager {
             String name = contact.getDisplayName()==null ? "" : contact.getDisplayName();
             String mobile = contact.getArrayListPhone().size()==0 ? "" : contact.getArrayListPhone().get(0).getPhone();
             String email = contact.getArrayListEmail().size()==0 ? "" : contact.getArrayListEmail().get(0).getEmail();
-
-            addContact(activity,name,mobile,email);
+            addContact(context,name,mobile,email);
         }
 
         return;
@@ -119,7 +130,14 @@ public class PhoneBookManager {
     }
 
 
-    private void addContact(MainActivity activity, String name, String mobile, String email) {
+    /**
+     * Adds one single contact info to device's phonebook
+     * @param context
+     * @param name
+     * @param mobile
+     * @param email
+     */
+    private void addContact(Context context, String name, String mobile, String email) {
         ArrayList<ContentProviderOperation> contact = new ArrayList<ContentProviderOperation>();
         contact.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
                 .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
@@ -142,7 +160,6 @@ public class PhoneBookManager {
                 .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
                 .build());
 
-
         // Email    `
         contact.add(ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
                 .withValueBackReference(ContactsContract.RawContacts.Data.RAW_CONTACT_ID, 0)
@@ -152,7 +169,7 @@ public class PhoneBookManager {
                 .build());
 
         try {
-            ContentProviderResult[] results = activity.getContentResolver().applyBatch(ContactsContract.AUTHORITY, contact);
+            ContentProviderResult[] results = context.getContentResolver().applyBatch(ContactsContract.AUTHORITY, contact);
         } catch (Exception e) {
             Log.d(MainActivity.TAG,"Exception saveing contact "+e.getMessage());
         }

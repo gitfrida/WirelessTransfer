@@ -14,27 +14,27 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:text="@string/preparing_phonebook"
-        android:textSize="8pt"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:textSize="8pt" />
 
     <ProgressBar
+        android:id="@+id/progressBar"
         android:layout_width="80dp"
         android:layout_height="80dp"
-        android:id="@+id/progressBar"
-        android:layout_margin="20dp"
-        ></ProgressBar>
+        android:layout_margin="20dp"></ProgressBar>
 
-    <LinearLayout
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/devicesList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:visibility="invisible"></androidx.recyclerview.widget.RecyclerView>
+
+    <LinearLayout
         android:id="@+id/rolesLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:gravity="center"
-        android:visibility="invisible"
-        >
+        android:orientation="vertical"
+        android:visibility="invisible">
 
         <Button
             android:id="@+id/senderBtn"
