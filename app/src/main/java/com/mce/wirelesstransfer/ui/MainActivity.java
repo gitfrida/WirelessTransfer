@@ -181,7 +181,12 @@ public class MainActivity extends Activity {
      */
     public void setTransferBtnVisible()
     {
-        findViewById(R.id.transferBtn).setVisibility(View.VISIBLE);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                findViewById(R.id.transferBtn).setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     /**
@@ -199,7 +204,7 @@ public class MainActivity extends Activity {
     public void deviceSelected(WifiP2pDevice wifiP2pDevice)
     {
         connectionManager.connectToDevice(wifiP2pDevice);
-        listView.setVisibility(View.INVISIBLE);
+        listView.setVisibility(View.GONE);
     }
 
     /**

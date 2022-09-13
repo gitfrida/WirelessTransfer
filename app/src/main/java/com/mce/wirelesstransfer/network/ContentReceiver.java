@@ -46,6 +46,7 @@ public  class ContentReceiver {
                 socket.bind(null);
                 socket.connect((new InetSocketAddress(host, ConnectionManager.PORT)), 1000000);
                 Log.d(MainActivity.TAG, "Connected - Receiver");
+                activity.showMessage(R.string.ready);
                 InputStream inputstream = socket.getInputStream();
                 DataInputStream dataInputStream = new DataInputStream(inputstream);
                 activity.showMessage(R.string.wait_content);

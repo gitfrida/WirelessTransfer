@@ -18,7 +18,7 @@ import com.mce.wirelesstransfer.ui.MainActivity;
 import java.util.ArrayList;
 
 public class ConnectionManager {
-    public static final int PORT = 8881;
+    public static final int PORT = 8882;
     private MainActivity mainActivity;
     private WifiP2pManager manager;
     private WifiP2pManager.Channel channel;
@@ -189,15 +189,14 @@ public class ConnectionManager {
      * @param address the connected device's ip address
      */
     public void connectionReady(String address) {
-        mainActivity.showMessage(R.string.ready);
         this.deviceAddress = address;
         if (isSender) {
-            mainActivity.showMessage(R.string.ready_send);
-            mainActivity.setTransferBtnVisible();
+
             ContentSender.getInstance().init(mainActivity);
             ContentSender.getInstance().openSocket();
-        } else
+        } else {
             new ContentReceiver(deviceAddress, mainActivity).openSocket();
+        }
     }
 
     public void setSender(boolean sender) {

@@ -37,12 +37,16 @@ public class ContentSender {
 
     public void openSocket() {
 
+
         Thread thread = new Thread(() -> {
             try {
                 Log.d(MainActivity.TAG, "Listen to server");
                 ServerSocket serverSocket = new ServerSocket(ConnectionManager.PORT);
                 Log.d(MainActivity.TAG, "Open Socket Sender");
                 socket = serverSocket.accept();
+
+                activity.showMessage(R.string.ready_send);
+                activity.setTransferBtnVisible();
                 Log.d(MainActivity.TAG, "Sender socket - readu " + socket.isConnected());
 
             } catch (Exception e) {
